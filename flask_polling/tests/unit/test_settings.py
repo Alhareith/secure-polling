@@ -15,16 +15,19 @@ def test_testing_settings_keep_debug_disabled(monkeypatch: pytest.MonkeyPatch) -
     assert settings["DEBUG"] is False
     assert settings["SESSION_COOKIE_HTTPONLY"] is True
     assert settings["SESSION_COOKIE_SAMESITE"] == "Lax"
+    assert settings["DATABASE_URL"] == "sqlite+pysqlite:///:memory:"
 
 
 def test_production_settings_require_secure_cookies(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("SECRET_KEY", "production-secret-only")
+    monkeypatch.setenv("DATABASE_URL", "sqlite+pysqlite:///production.db")
 
     settings = load_settings("production")
 
     assert settings["DEBUG"] is False
     assert settings["SESSION_COOKIE_SECURE"] is True
     assert settings["PREFERRED_URL_SCHEME"] == "https"
+    assert settings["DATABASE_URL"] == "sqlite+pysqlite:///production.db"
 
 
 def test_missing_secret_key_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -32,6 +35,14 @@ def test_missing_secret_key_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None
 
     with pytest.raises(RuntimeError, match="SECRET_KEY"):
         load_settings("testing")
+
+
+def test_production_settings_require_database_url(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("SECRET_KEY", "production-secret-only")
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+
+    with pytest.raises(RuntimeError, match="DATABASE_URL"):
+        load_settings("production")
 
 
 def test_unknown_environment_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:

@@ -28,6 +28,7 @@ class DevelopmentSettings(BaseSettings):
 
     APP_ENV = "development"
     DEBUG = True
+    DATABASE_URL = "sqlite+pysqlite:///instance/secure_polling-dev.db"
 
 
 class TestingSettings(BaseSettings):
@@ -36,6 +37,7 @@ class TestingSettings(BaseSettings):
     APP_ENV = "testing"
     TESTING = True
     PROPAGATE_EXCEPTIONS = True
+    DATABASE_URL = "sqlite+pysqlite:///:memory:"
 
 
 class ProductionSettings(BaseSettings):
@@ -85,4 +87,12 @@ def load_settings(environment: str | None = None) -> Mapping[str, Any]:
 
     values = _class_settings(settings_class)
     values["SECRET_KEY"] = secret_key
+
+    if selected_environment == "production":
+        database_url = os.environ.get("DATABASE_URL")
+        if not database_url:
+            message = "DATABASE_URL must be provided through the environment in production."
+            raise RuntimeError(message)
+        values["DATABASE_URL"] = database_url
+
     return values
