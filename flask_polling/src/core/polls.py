@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from enum import StrEnum
 from uuid import UUID, uuid4
@@ -85,6 +85,12 @@ class Poll:
 
         _validate_options(self.options)
         _validate_choice_rules(self.vote_type, self.options, self.max_choices)
+
+    def transition_to(self, target: PollState) -> Poll:
+        """يعيد نسخة جديدة بالحالة المطلوبة بعد التحقق من سياسة الانتقال."""
+
+        require_transition(self.state, target)
+        return replace(self, state=target)
 
 
 def _require_text(name: str, value: str, *, maximum_length: int) -> None:
