@@ -53,7 +53,7 @@ SETTINGS_BY_ENV = {
 }
 
 
-def _class_settings(settings_class: type[BaseSettings] ) -> dict[str, Any]:
+def _class_settings(settings_class: type[BaseSettings]) -> dict[str, Any]:
     """يجمع إعدادات الطبقة الأساسية والبيئة المطلوبة مع أولوية للأخيرة."""
 
     values: dict[str, Any] = {}

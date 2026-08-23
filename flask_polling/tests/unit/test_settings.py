@@ -27,7 +27,7 @@ def test_production_settings_require_secure_cookies(monkeypatch: pytest.MonkeyPa
     assert settings["PREFERRED_URL_SCHEME"] == "https"
 
 
-def test_missing_secret_key_is_rejected(monkeypatch: pytest.MonkeyPatch ) -> None:
+def test_missing_secret_key_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("SECRET_KEY", raising=False)
 
     with pytest.raises(RuntimeError, match="SECRET_KEY"):
