@@ -1,15 +1,12 @@
 """اختبارات إنشاء تطبيق Flask."""
 
+import pytest
 from flask import Flask
 
 from web.app import create_app
 
 
-def test_create_app_loads_testing_settings(monkeypatch) -> None:
-    monkeypatch.setenv("SECRET_KEY", "testing-secret-only")
-
-    app = create_app("testing")
-
+def test_create_app_loads_testing_settings(app: Flask) -> None:
     assert isinstance(app, Flask)
     assert app.config["APP_ENV"] == "testing"
     assert app.config["TESTING"] is True
@@ -17,7 +14,7 @@ def test_create_app_loads_testing_settings(monkeypatch) -> None:
     assert app.config["SECRET_KEY"] == "testing-secret-only"
 
 
-def test_create_app_keeps_production_debug_disabled(monkeypatch) -> None:
+def test_create_app_keeps_production_debug_disabled(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("SECRET_KEY", "production-secret-only")
 
     app = create_app("production")
