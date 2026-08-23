@@ -1,0 +1,23 @@
+# Project TODO
+
+- [ ] Reconcile the initialized web template with the approved Flask-and-SQLite local-first architecture.
+- [x] Produce and approve the security, data, and scope analysis before implementation.
+- [ ] Define the domain model and SQLite schema for administrators, polls, options, voter-token hashes, encrypted ballots, audit events, and final reports.
+- [ ] Implement administrator-only authentication with secure password hashing, server-side sessions, CSRF protection, and role guards.
+- [ ] Implement immutable published poll configuration with controlled lifecycle states and UTC time windows.
+- [ ] Implement one-time anonymous voter-token admission without storing a voter identity alongside a ballot.
+- [ ] Implement encrypted ballot submission, duplicate prevention, receipt issuance, and protected ballot persistence.
+- [ ] Implement ballot tallying after closure, signed results, hash-chain verification, and an auditable public-safe report.
+- [ ] Implement the academic cryptography laboratory for Caesar, Monoalphabetic, Vigenère, Playfair, Hill, Affine, DES3, AES, RSA, and Diffie-Hellman with operational-security warnings.
+- [ ] Create elegant responsive public voting pages, administrator dashboard, results, and audit-report views.
+- [ ] Add unit, integration, security-abuse, and end-to-end tests for all critical flows.
+- [ ] Verify the rendered experience, accessibility, and error states before delivery.
+- [x] Deliver a standalone deep analysis, requirements specification, layered architecture, and empty file map before any application implementation.
+- [x] Keep implementation paused until the user explicitly approves the analysis and staged plan.
+- [x] Replace the high-level requirements with a formal, traceable software requirements specification before implementation approval.
+- [x] Replace the prior Flask skeleton with a simplified layered structure of empty files and Arabic RTL documentation only.
+- [x] Present the phased implementation roadmap, stage gates, and test strategy for explicit user approval before writing application code.
+- [ ] Present each implementation step with its goal and acceptance criterion, apply only that step, and pause for user review before advancing.
+- [x] Step 1.1: Define the Python project metadata, first-stage dependencies, and quality-tool configuration in flask_polling/pyproject.toml.
+- [ ] Step 1.2: Define separate base, development, testing, and production Flask settings with environment-only secrets.
+- [ ] Package the current Flask scaffold, documentation, and task list for a clean standalone GitHub repository.
