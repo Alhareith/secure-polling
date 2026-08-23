@@ -1,9 +1,9 @@
-"""اختبارات تحويل الاستطلاع بين طبقتي المجال وSQLite."""
+"""اختبارات تحويل بيانات الاستطلاع الأساسية بين المجال وSQLite."""
 
 from datetime import UTC, datetime, timedelta
 
 from core.polls import Poll, PollState, VoteType
-from data.models import Base, PollRecord, poll_from_record, poll_record_from_domain
+from data.models import Base, PollRecord, poll_record_from_domain
 
 
 def _poll() -> Poll:
@@ -28,19 +28,10 @@ def test_poll_record_stores_only_the_poll_scalar_values() -> None:
     assert record.title == poll.title
     assert record.vote_type == "multi"
     assert record.state == "published"
-    assert not hasattr(record, "options")
 
 
-def test_poll_record_round_trip_preserves_the_domain_poll_with_supplied_options() -> None:
-    poll = _poll()
-
-    restored_poll = poll_from_record(poll_record_from_domain(poll), options=poll.options)
-
-    assert restored_poll == poll
-
-
-def test_poll_table_is_the_only_application_table_in_this_step() -> None:
-    assert set(Base.metadata.tables) == {"polls"}
+def test_poll_table_exists_alongside_the_option_table() -> None:
+    assert set(Base.metadata.tables) == {"poll_options", "polls"}
     assert set(PollRecord.__table__.columns.keys()) == {
         "poll_id",
         "title",

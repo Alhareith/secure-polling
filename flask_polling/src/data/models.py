@@ -5,8 +5,8 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
-from sqlalchemy import BigInteger, CheckConstraint, String, Uuid
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import BigInteger, CheckConstraint, ForeignKey, Integer, String, Text, Uuid
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from core.polls import Poll, PollState, VoteType
 
@@ -16,7 +16,7 @@ class Base(DeclarativeBase):
 
 
 class PollRecord(Base):
-    """تمثيل SQLite لبيانات الاستطلاع الأساسية، دون خياراته المنفصلة."""
+    """تمثيل SQLite لبيانات الاستطلاع الأساسية وخياراته المرتبة."""
 
     __tablename__ = "polls"
     __table_args__ = (
@@ -32,6 +32,27 @@ class PollRecord(Base):
     opens_at_us: Mapped[int] = mapped_column(BigInteger, nullable=False)
     closes_at_us: Mapped[int] = mapped_column(BigInteger, nullable=False)
     max_choices: Mapped[int] = mapped_column(nullable=False)
+    options: Mapped[list[PollOptionRecord]] = relationship(
+        back_populates="poll",
+        cascade="all, delete-orphan",
+        order_by="PollOptionRecord.position",
+        passive_deletes=True,
+    )
+
+
+class PollOptionRecord(Base):
+    """خيار واحد مرتب ضمن استطلاع محدد، لا يحمل أي بيانات عن المصوّت."""
+
+    __tablename__ = "poll_options"
+    __table_args__ = (CheckConstraint("position >= 1", name="poll_option_position_is_positive"),)
+
+    poll_id: Mapped[UUID] = mapped_column(
+        ForeignKey("polls.poll_id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    position: Mapped[int] = mapped_column(Integer, primary_key=True)
+    label: Mapped[str] = mapped_column(Text, nullable=False)
+    poll: Mapped[PollRecord] = relationship(back_populates="options")
 
 
 def poll_record_from_domain(poll: Poll) -> PollRecord:
@@ -49,20 +70,46 @@ def poll_record_from_domain(poll: Poll) -> PollRecord:
     )
 
 
-def poll_from_record(record: PollRecord, *, options: tuple[str, ...]) -> Poll:
-    """يبني Poll كاملًا من سجل SQLite وخياراته التي سيحفظها جدول مستقل لاحقًا."""
+def poll_option_records_from_domain(poll: Poll) -> tuple[PollOptionRecord, ...]:
+    """يحوّل خيارات Poll إلى سجلات مرتبة تبدأ من الموضع 1."""
+
+    return tuple(
+        PollOptionRecord(poll_id=poll.poll_id, position=position, label=label)
+        for position, label in enumerate(poll.options, start=1)
+    )
+
+
+def poll_from_records(record: PollRecord, *, option_records: tuple[PollOptionRecord, ...]) -> Poll:
+    """يبني Poll كاملًا من سجل الاستطلاع وسجلات خياراته المرتبة."""
 
     return Poll(
         poll_id=record.poll_id,
         title=record.title,
         question=record.question,
         vote_type=VoteType(record.vote_type),
-        options=options,
+        options=_option_labels_for_poll(record.poll_id, option_records),
         opens_at=_from_utc_microseconds(record.opens_at_us),
         closes_at=_from_utc_microseconds(record.closes_at_us),
         max_choices=record.max_choices,
         state=PollState(record.state),
     )
+
+
+def _option_labels_for_poll(
+    poll_id: UUID, option_records: tuple[PollOptionRecord, ...]
+) -> tuple[str, ...]:
+    if any(option_record.poll_id != poll_id for option_record in option_records):
+        raise ValueError("option records must belong to the poll record")
+
+    ordered_records = tuple(
+        sorted(option_records, key=lambda option_record: option_record.position)
+    )
+    expected_positions = tuple(range(1, len(ordered_records) + 1))
+    actual_positions = tuple(option_record.position for option_record in ordered_records)
+    if actual_positions != expected_positions:
+        raise ValueError("option record positions must be consecutive starting at 1")
+
+    return tuple(option_record.label for option_record in ordered_records)
 
 
 def _to_utc_microseconds(value: datetime) -> int:
