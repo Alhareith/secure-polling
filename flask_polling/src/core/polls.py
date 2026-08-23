@@ -32,6 +32,10 @@ class PollValidationError(ValueError):
     """خطأ في بيانات تعريف الاستطلاع أو قواعده الأساسية."""
 
 
+class VoteValidationError(ValueError):
+    """خطأ في اختيار المصوّت قبل إنشاء بطاقة التصويت."""
+
+
 YES_NO_OPTIONS = ("yes", "no")
 
 
@@ -92,6 +96,32 @@ class Poll:
         require_transition(self.state, target)
         return replace(self, state=target)
 
+    def validate_selection(self, selected_options: tuple[str, ...]) -> tuple[str, ...]:
+        """يتحقق من اختيار المصوّت ويعيد الخيارات بصيغتها المعتمدة في الاستطلاع."""
+
+        if self.state is not PollState.OPEN:
+            raise VoteValidationError("votes are accepted only while the poll is open")
+
+        if not selected_options:
+            raise VoteValidationError("at least one option must be selected")
+
+        normalized_selection = tuple(option.strip().casefold() for option in selected_options)
+        if any(not option for option in normalized_selection):
+            raise VoteValidationError("selected options must not be blank")
+        if len(set(normalized_selection)) != len(normalized_selection):
+            raise VoteValidationError("selected options must not contain duplicates")
+
+        normalized_options = {option.strip().casefold(): option for option in self.options}
+        try:
+            canonical_selection = tuple(
+                normalized_options[option] for option in normalized_selection
+            )
+        except KeyError as error:
+            raise VoteValidationError("selected options must belong to the poll") from error
+
+        _validate_selected_count(self.vote_type, canonical_selection, self.max_choices)
+        return canonical_selection
+
 
 def _require_text(name: str, value: str, *, maximum_length: int) -> None:
     if not value.strip():
@@ -129,6 +159,19 @@ def _validate_choice_rules(vote_type: VoteType, options: tuple[str, ...], max_ch
             raise PollValidationError("yes/no polls require options: yes, no")
         if max_choices != 1:
             raise PollValidationError("yes/no polls require max_choices=1")
+
+
+def _validate_selected_count(
+    vote_type: VoteType, selected_options: tuple[str, ...], max_choices: int
+) -> None:
+    if vote_type is VoteType.SINGLE and len(selected_options) != 1:
+        raise VoteValidationError("single-choice polls require exactly one selected option")
+
+    if vote_type is VoteType.MULTI and not 1 <= len(selected_options) <= max_choices:
+        raise VoteValidationError("multi-choice selections must be within the allowed limit")
+
+    if vote_type is VoteType.YES_NO and len(selected_options) != 1:
+        raise VoteValidationError("yes/no polls require exactly one selected option")
 
 
 ALLOWED_STATE_TRANSITIONS: dict[PollState, frozenset[PollState]] = {
