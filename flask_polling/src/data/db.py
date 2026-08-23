@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from sqlalchemy import Engine, create_engine, event
 
+from data.models import Base
+
 SQLITE_BUSY_TIMEOUT_MS = 5_000
 
 
@@ -29,3 +31,9 @@ def create_sqlite_engine(database_url: str) -> Engine:
             cursor.close()
 
     return engine
+
+
+def create_schema(engine: Engine) -> None:
+    """ينشئ جداول طبقة البيانات المعرفة حاليًا على محرك SQLite المحدد."""
+
+    Base.metadata.create_all(bind=engine)
