@@ -53,6 +53,21 @@ SETTINGS_BY_ENV = {
 }
 
 
+def _class_settings(settings_class: type[BaseSettings] ) -> dict[str, Any]:
+    """يجمع إعدادات الطبقة الأساسية والبيئة المطلوبة مع أولوية للأخيرة."""
+
+    values: dict[str, Any] = {}
+    for parent in reversed(settings_class.mro()):
+        values.update(
+            {
+                key: value
+                for key, value in vars(parent).items()
+                if key.isupper() and not key.startswith("_")
+            }
+        )
+    return values
+
+
 def load_settings(environment: str | None = None) -> Mapping[str, Any]:
     """يعيد إعدادات البيئة المطلوبة بعد التحقق من وجود السر في البيئة."""
 
@@ -61,16 +76,13 @@ def load_settings(environment: str | None = None) -> Mapping[str, Any]:
         settings_class = SETTINGS_BY_ENV[selected_environment]
     except KeyError as error:
         allowed = ", ".join(sorted(SETTINGS_BY_ENV))
-        raise ValueError(f"Unsupported APP_ENV: {selected_environment}. Allowed: {allowed}") from error
+        message = f"Unsupported APP_ENV: {selected_environment}. Allowed: {allowed}"
+        raise ValueError(message) from error
 
     secret_key = os.environ.get("SECRET_KEY")
     if not secret_key:
         raise RuntimeError("SECRET_KEY must be provided through the environment.")
 
-    values = {
-        key: value
-        for key, value in vars(settings_class).items()
-        if key.isupper() and not key.startswith("_")
-    }
+    values = _class_settings(settings_class)
     values["SECRET_KEY"] = secret_key
     return values
